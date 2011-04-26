@@ -104,7 +104,7 @@ module Devise
         # email already exists error.
         # Options must contain the user email
         def send_invitation(attributes={})
-          invitable = find_or_initialize_by(:email => attributes[:email])
+          invitable = find_or_initialize_by_email(attributes[:email])
 
           if invitable.new_record?
             invitable.errors.add(:email, :blank) if invitable.email.blank?
@@ -123,7 +123,7 @@ module Devise
         # error in invitation_token attribute.
         # Attributes must contain invitation_token, password and confirmation
         def accept_invitation!(attributes={})
-          invitable = find_or_initialize_with_error_by(:invitation_token, attributes[:invitation_token])
+          invitable = find_or_initialize_with_error_by_invitation_token(attributes[:invitation_token])
           invitable.errors.add(:invitation_token, :invalid) if attributes[:invitation_token] && !invitable.new_record? && !invitable.valid_invitation?
           if invitable.errors.empty?
             invitable.attributes = attributes
