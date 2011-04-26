@@ -1,4 +1,5 @@
-require 'test/test_helper'
+require 'test_helper'
+require 'model_tests_helper'
 
 class InvitationMailTest < ActionMailer::TestCase
 
@@ -8,11 +9,7 @@ class InvitationMailTest < ActionMailer::TestCase
   end
 
   def user
-    @user ||= begin
-      user = create_user_with_invitation('token')
-      user.send_invitation
-      user
-    end
+    @user ||= User.invite!(:email => "valid@email.com")
   end
 
   def mail
@@ -27,7 +24,7 @@ class InvitationMailTest < ActionMailer::TestCase
   end
 
   test 'content type should be set to html' do
-    assert_equal 'text/html', mail.content_type
+    assert_equal 'text/html; charset=UTF-8', mail.content_type
   end
 
   test 'send invitation to the user email' do
@@ -39,24 +36,24 @@ class InvitationMailTest < ActionMailer::TestCase
   end
 
   test 'setup subject from I18n' do
-    store_translations :en, :devise => { :mailer => { :invitation => 'Invitation' } } do
-      assert_equal 'Invitation', mail.subject
+    store_translations :en, :devise => { :mailer => { :invitation_instructions => { :subject => 'Localized Invitation' } } } do
+      assert_equal 'Localized Invitation', mail.subject
     end
   end
 
   test 'subject namespaced by model' do
-    store_translations :en, :devise => { :mailer => { :user => { :invitation => 'User Invitation' } } } do
+    store_translations :en, :devise => { :mailer => { :invitation_instructions => { :user_subject => 'User Invitation' } } } do
       assert_equal 'User Invitation', mail.subject
     end
   end
 
   test 'body should have user info' do
-    assert_match /#{user.email}/, mail.body
+    assert_match /#{user.email}/, mail.body.decoded
   end
 
   test 'body should have link to confirm the account' do
     host = ActionMailer::Base.default_url_options[:host]
     invitation_url_regexp = %r{<a href=\"http://#{host}/users/invitation/accept\?invitation_token=#{user.invitation_token}">}
-    assert_match invitation_url_regexp, mail.body
+    assert_match invitation_url_regexp, mail.body.decoded
   end
 end

@@ -1,6 +1,7 @@
-module Devise::Controllers::Helpers
+module DeviseInvitable::Controllers::Helpers
   protected
-  def authenticate_resource!
-    send :"authenticate_#{resource_name}!"
+  def authenticate_inviter!
+    send(:"authenticate_#{resource_name}!", true)
   end
 end
+ActionController::Base.send :include, DeviseInvitable::Controllers::Helpers

@@ -2,7 +2,8 @@ class Devise::InvitationsController < ApplicationController
   include Devise::Controllers::InternalHelpers
   include Devise::Controllers::Helpers
 
-  before_filter :authenticate_resource!, :only => [:new, :create]
+  before_filter :authenticate_inviter!, :only => [:new, :create]
+  before_filter :has_invitations_left?, :only => [:create]
   before_filter :require_no_authentication, :only => [:edit, :update]
   helper_method :after_sign_in_path_for
 
@@ -14,10 +15,10 @@ class Devise::InvitationsController < ApplicationController
 
   # POST /resource/invitation
   def create
-    self.resource = resource_class.send_invitation(params[resource_name])
+    self.resource = resource_class.invite!(params[resource_name], current_inviter)
 
     if resource.errors.empty?
-      set_flash_message :notice, :send_instructions
+      set_flash_message :notice, :send_instructions, :email => self.resource.email
       redirect_to after_sign_in_path_for(resource_name)
     else
       render_with_scope :new
@@ -26,9 +27,12 @@ class Devise::InvitationsController < ApplicationController
 
   # GET /resource/invitation/edit?invitation_token=abcdef
   def edit
-    self.resource = resource_class.new
-    resource.invitation_token = params[:invitation_token]
-    render_with_scope :edit
+    if params[:invitation_token] && self.resource = resource_class.first(:conditions => { :invitation_token => params[:invitation_token] })
+      render_with_scope :edit
+    else
+      set_flash_message(:alert, :invitation_token_invalid)
+      redirect_to after_sign_out_path_for(resource_name)
+    end
   end
 
   # PUT /resource/invitation
@@ -42,11 +46,17 @@ class Devise::InvitationsController < ApplicationController
       render_with_scope :edit
     end
   end
-  
-protected
-  
-  def authenticate_resource!
-    send :"authenticate_#{resource_name}!"
+
+  protected
+  def current_inviter
+    @current_inviter ||= authenticate_inviter!
   end
-  
+
+  def has_invitations_left?
+    unless current_inviter.nil? || current_inviter.has_invitations_left?
+      build_resource
+      set_flash_message :alert, :no_invitations_remaining 
+      render_with_scope :new
+    end
+  end
 end

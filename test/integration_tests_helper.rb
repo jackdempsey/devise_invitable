@@ -4,18 +4,27 @@ class ActionController::IntegrationTest
     request.env['warden']
   end
   
-  def sign_in_as_user
-    Warden::Proxy.any_instance.stubs(:user).at_least_once.returns(User.new)
+  def create_full_user
+    @user ||= begin
+      user = User.create!(
+        :username              => 'usertest',
+        :email                 => 'fulluser@test.com',
+        :password              => '123456',
+        :password_confirmation => '123456',
+        :created_at            => Time.now.utc
+      )
+      user.confirm!
+      user
+    end
   end
 
-  def create_user(accept_invitation = true)
-    user = User.new :email => 'newuser@test.com'
-    user.skip_confirmation!
-    user.invitation_token = 'token'
-    user.invitation_sent_at = Time.now.utc
-    user.save(false)
-    user.accept_invitation! if accept_invitation
-    user
+  def sign_in_as_user(user = nil)
+    user ||= create_full_user
+    visit new_user_session_path
+    fill_in 'user_email', :with => user.email
+    fill_in 'user_password', :with => '123456'
+    fill_in 'user_password', :with => user.password
+    click_button 'Sign in'
   end
 
   # Fix assert_redirect_to in integration sessions because they don't take into

@@ -1,13 +1,14 @@
 module DeviseInvitable
   class Engine < ::Rails::Engine
     
-    initializer "devise_invitable.add_url_helpers" do |app|
-      ActionController::Base.send :include, DeviseInvitable::Controllers::UrlHelpers
-      ActionView::Base.send :include, DeviseInvitable::Controllers::UrlHelpers
-    end
+    ActiveSupport.on_load(:action_controller) { include DeviseInvitable::Controllers::UrlHelpers }
+    ActiveSupport.on_load(:action_view)       { include DeviseInvitable::Controllers::UrlHelpers }
     
-    config.after_initialize do
-      I18n.load_path.unshift File.expand_path(File.join(File.dirname(__FILE__), 'locales', 'en.yml'))
+    # We use to_prepare instead of after_initialize here because Devise is a Rails engine; its
+    # mailer is reloaded like the rest of the user's app.  Got to make sure that our mailer methods
+    # are included each time Devise::Mailer is (re)loaded.
+    config.to_prepare do
+      require 'devise/mailer'
       Devise::Mailer.send :include, DeviseInvitable::Mailer
     end
     
