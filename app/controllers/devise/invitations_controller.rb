@@ -5,7 +5,7 @@ class Devise::InvitationsController < ApplicationController
   before_filter :authenticate_inviter!, :only => [:new, :create]
   before_filter :has_invitations_left?, :only => [:create]
   before_filter :require_no_authentication, :only => [:edit, :update]
-  helper_method :after_sign_in_path_for
+  helper_method :after_sign_in_path_for, :after_accept_path_for
 
   # GET /resource/invitation/new
   def new
@@ -19,7 +19,7 @@ class Devise::InvitationsController < ApplicationController
 
     if resource.errors.empty?
       set_flash_message :notice, :send_instructions, :email => self.resource.email
-      redirect_to after_sign_in_path_for(resource_name)
+      redirect_to after_accept_path_for(resource_name)
     else
       render_with_scope :new
     end
